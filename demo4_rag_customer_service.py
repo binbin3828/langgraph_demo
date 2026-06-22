@@ -13,7 +13,6 @@ Demo4: 智能客服 - RAG + LangGraph 带记忆
 import os
 from typing import TypedDict, Annotated
 from dotenv import load_dotenv
-import httpx
 
 from langchain_openai import ChatOpenAI
 from langchain_core.messages import SystemMessage, HumanMessage, AIMessage, BaseMessage
@@ -22,13 +21,10 @@ from langgraph.checkpoint.memory import MemorySaver
 
 load_dotenv()
 
-http_client = httpx.Client(verify=False)
-
 llm = ChatOpenAI(
     model=os.getenv("DEEPSEEK_MODEL", "deepseek-v4-flash"),
     openai_api_key=os.getenv("DEEPSEEK_API_KEY"),
     base_url="https://api.deepseek.com",
-    http_client=http_client,
 )
 
 # ========== 模拟知识库 ==========

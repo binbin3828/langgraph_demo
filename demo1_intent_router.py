@@ -14,7 +14,6 @@ Demo1: 客户意图分类路由 - LangGraph 基础状态图
 import os
 from typing import TypedDict, Literal
 from dotenv import load_dotenv
-import httpx
 
 from langchain_openai import ChatOpenAI
 from langchain_core.messages import SystemMessage, HumanMessage
@@ -22,13 +21,10 @@ from langgraph.graph import StateGraph, START, END
 
 load_dotenv()
 
-http_client = httpx.Client(verify=False)
-
 llm = ChatOpenAI(
     model=os.getenv("DEEPSEEK_MODEL", "deepseek-v4-flash"),
     openai_api_key=os.getenv("DEEPSEEK_API_KEY"),
     base_url="https://api.deepseek.com",
-    http_client=http_client,
 )
 
 

@@ -13,7 +13,6 @@ Demo6: 并行研究Agent - Map-Reduce模式
 import os
 from typing import TypedDict, Annotated
 from dotenv import load_dotenv
-import httpx
 
 from langchain_openai import ChatOpenAI
 from langchain_core.messages import HumanMessage
@@ -22,13 +21,10 @@ from langgraph.types import Send
 
 load_dotenv()
 
-http_client = httpx.Client(verify=False)
-
 llm = ChatOpenAI(
     model=os.getenv("DEEPSEEK_MODEL", "deepseek-v4-flash"),
     openai_api_key=os.getenv("DEEPSEEK_API_KEY"),
     base_url="https://api.deepseek.com",
-    http_client=http_client,
 )
 
 

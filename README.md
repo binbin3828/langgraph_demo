@@ -33,7 +33,7 @@ python demo1_intent_router.py
 ├── requirements.txt                # 依赖列表
 ├── demo1_intent_router.py          # 示例1：意图分类路由
 ├── demo2_code_review.py            # 示例2：代码审查流水线
-├── demo3_humain_in_loop.py         # 示例3：人机协作审批
+├── demo3_human_in_loop.py         # 示例3：人机协作审批
 ├── demo4_rag_customer_service.py   # 示例4：RAG智能客服
 ├── demo5_self_correcting_agent.py  # 示例5：自我纠错Agent
 └── demo6_parallel_research.py      # 示例6：并行研究(Map-Reduce)
@@ -157,7 +157,6 @@ START → [research_topic (并行 N 个实例)] → synthesize → END
 | `langgraph` | 图状态管理框架 |
 | `langchain-core` | 消息类型、基础抽象 |
 | `langchain-openai` | DeepSeek API 的 ChatOpenAI 适配 |
-| `httpx` | HTTP 客户端（SSL 配置） |
 | `python-dotenv` | 加载 .env 环境变量 |
 
 ## 配置
