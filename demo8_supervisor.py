@@ -16,9 +16,7 @@ Demo8: Supervisor编排者 - LLM动态路由多Agent
   子Agent完成后 → 回到Supervisor → 决定是否需要继续调度 → 直到任务完成
 """
 
-import json
 import os
-import re
 from typing import TypedDict, Annotated, Literal
 from dotenv import load_dotenv
 import httpx
@@ -34,7 +32,7 @@ load_dotenv()
 http_client = httpx.Client(verify=False)
 
 llm = ChatOpenAI(
-    model="deepseek-v4-pro",
+    model="deepseek-chat",
     openai_api_key=os.getenv("DEEPSEEK_API_KEY"),
     base_url="https://api.deepseek.com",
     http_client=http_client,
@@ -67,60 +65,7 @@ class SupervisorState(TypedDict):
     final_response: str
 
 
-def _extract_json(text: str) -> dict | None:
-    """从LLM响应中提取JSON对象（兼容DeepSeek思考模型的输出格式）"""
-    # 尝试匹配 ```json ... ``` 代码块
-    match = re.search(r'```(?:json)?\s*(\{.*?\})\s*```', text, re.DOTALL)
-    if match:
-        try:
-            return json.loads(match.group(1))
-        except json.JSONDecodeError:
-            pass
-
-    # 尝试匹配包含 next_agent 字段的 JSON 对象
-    match = re.search(r'\{[^{}]*"next_agent"[^{}]*\}', text, re.DOTALL)
-    if match:
-        try:
-            return json.loads(match.group())
-        except json.JSONDecodeError:
-            pass
-
-    # 尝试匹配任意 JSON 对象
-    match = re.search(r'\{[^{}]*\}', text, re.DOTALL)
-    if match:
-        try:
-            return json.loads(match.group())
-        except json.JSONDecodeError:
-            pass
-
-    return None
-
-
-def _parse_decision(text: str, user_request: str) -> SupervisorDecision:
-    """解析LLM响应为SupervisorDecision，JSON失败时fallback到关键词匹配"""
-    json_data = _extract_json(text)
-
-    if json_data:
-        try:
-            return SupervisorDecision(
-                reasoning=json_data.get("reasoning", text[:100]),
-                next_agent=json_data.get("next_agent", "FINISH"),
-                task_description=json_data.get("task_description", user_request),
-            )
-        except Exception:
-            pass
-
-    # fallback: 关键词匹配
-    text_lower = text.lower()
-    for key in ["researcher", "coder", "writer"]:
-        if key in text_lower:
-            return SupervisorDecision(
-                reasoning=text[:100],
-                next_agent=key,
-                task_description=user_request,
-            )
-
-    return SupervisorDecision(reasoning=text[:100], next_agent="FINISH", task_description="")
+supervisor_llm = llm.with_structured_output(SupervisorDecision, method="function_calling")
 
 
 def supervisor(state: SupervisorState) -> dict:
@@ -141,20 +86,13 @@ def supervisor(state: SupervisorState) -> dict:
 
 当前已调度 {state['dispatch_count']} 次。
 
-请决定下一步，只输出一个JSON对象（不要加任何解释）:
-{{
-    "reasoning": "决策理由",
-    "next_agent": "researcher 或 coder 或 writer 或 FINISH",
-    "task_description": "给子Agent的具体任务描述"
-}}
+请决定下一步:
+1. 如果还需要某个Agent继续工作，选择对应的Agent并给出任务描述
+2. 如果任务已经完成，返回 FINISH
 
-注意:
-- 如果还需要某个Agent工作，next_agent 选择对应成员
-- 如果任务已经完成，next_agent 设为 "FINISH"
-- 不要重复已完成的工作，每次调度要有明确的增量目标"""
+注意: 不要重复已完成的工作，每次调度要有明确的增量目标。"""
 
-    result = llm.invoke([HumanMessage(content=prompt)])
-    decision = _parse_decision(result.content.strip(), state["user_request"])
+    decision = supervisor_llm.invoke([HumanMessage(content=prompt)])
 
     next_agent = decision.next_agent
     print(f"[Supervisor] 决策: {next_agent} | 理由: {decision.reasoning[:50]}")

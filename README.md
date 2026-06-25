@@ -1,6 +1,6 @@
 # LangGraph Demo
 
-基于 LangGraph 框架的 6 个渐进式学习示例，覆盖从基础图构建到高级并行模式的完整实践。
+基于 LangGraph 框架的 10 个渐进式学习示例，覆盖从基础图构建到高级多 Agent 协作的完整实践。
 
 ## 环境要求
 
@@ -31,12 +31,16 @@ python demo1_intent_router.py
 .
 ├── .env.example                    # 环境变量模板
 ├── requirements.txt                # 依赖列表
-├── demo1_intent_router.py          # 示例1：意图分类路由
-├── demo2_code_review.py            # 示例2：代码审查流水线
-├── demo3_human_in_loop.py         # 示例3：人机协作审批
-├── demo4_rag_customer_service.py   # 示例4：RAG智能客服
-├── demo5_self_correcting_agent.py  # 示例5：自我纠错Agent
-└── demo6_parallel_research.py      # 示例6：并行研究(Map-Reduce)
+├── demo1_intent_router.py              # 示例1：意图分类路由
+├── demo2_code_review.py                # 示例2：代码审查流水线
+├── demo3_human_in_loop.py             # 示例3：人机协作审批
+├── demo4_rag_customer_service.py       # 示例4：RAG智能客服
+├── demo5_self_correcting_agent.py      # 示例5：自我纠错Agent
+├── demo6_parallel_research.py          # 示例6：并行研究(Map-Reduce)
+├── demo7_reflective_multi_agent.py     # 示例7：反思式多Agent写作
+├── demo8_supervisor.py                 # 示例8：Supervisor动态路由编排
+├── demo9_react_agent.py                # 示例9：ReAct思考+工具调用
+└── demo10_debate.py                    # 示例10：多Agent辩论
 ```
 
 ## 示例说明
@@ -147,6 +151,84 @@ START → [research_topic (并行 N 个实例)] → synthesize → END
 - Map-Reduce 模式：并行处理 → 汇总结果
 - 多个 State Schema（`OverallState` + `TopicState`）
 - Reducer 聚合并行结果
+
+---
+
+### Demo7 - 反思式多 Agent 写作
+
+**核心概念：** 反思循环、多角色协作
+
+Writer 写初稿 → Critic 评审打分 → Reviser 根据意见修订 → Critic 再评审，直到质量达标或达到最大轮次。包含退化保护和最佳版本保留。
+
+```
+START → writer → critic ──(评分不足)──→ reviser → critic
+                  │                        ↑
+                  └──(评分达标)──→ finalize → END
+```
+
+**LangGraph 要点：**
+- 多 Agent 分角色协作（Writer / Critic / Reviser）
+- 循环反思直到质量达标
+- `with_structured_output` 确保评分解析可靠
+- 退化保护：评分严重下降时提前终止
+
+---
+
+### Demo8 - Supervisor 动态路由编排
+
+**核心概念：** Supervisor 模式、LLM 动态路由
+
+一个"经理 Agent"根据任务进展动态决策下一步派谁干活（研究员/程序员/文档员），子 Agent 干完活回到 Supervisor 重新评估，直到任务完成。
+
+```
+START → supervisor ──→ [researcher | coder | writer] ──→ supervisor (循环)
+                        └──(FINISH)──→ summarize → END
+```
+
+**LangGraph 要点：**
+- LLM 驱动的动态路由，取代写死的 if-else
+- 子 Agent 干完活回到 Supervisor 形成循环
+- `dispatch_count` 防止死循环
+- 与 Demo1 静态路由的本质区别：规则由 LLM 实时决定
+
+---
+
+### Demo9 - ReAct 思考+工具调用
+
+**核心概念：** ReAct 模式、Tool Calling、ToolNode
+
+LLM 自主"思考 → 调用工具 → 观察结果 → 继续思考"，直到不再需要工具后给出最终回答。内置计算器、查时间、知识库、翻译 4 种工具。
+
+```
+START → agent ──(有 tool_calls)──→ tools ──→ agent (循环)
+               └──(无 tool_calls)──→ respond → END
+```
+
+**LangGraph 要点：**
+- `@tool` 装饰器将 Python 函数注册为 LLM 工具
+- `bind_tools()` 将工具绑定到 LLM
+- `ToolNode` 自动执行 LLM 选中的工具
+- 条件边根据 `tool_calls` 判断继续工具调用还是直接回答
+- LLM 能自行发现工具调用错误并纠正
+
+---
+
+### Demo10 - 多 Agent 辩论
+
+**核心概念：** 多 Agent 辩论、观点碰撞
+
+多个 Agent 围绕一个议题展开多轮辩论，每个 Agent 维护自身观点，反驳对方论点，最终由评审 Agent 裁决最优方案。
+
+```
+START → [debater_a | debater_b | debater_c] (并行) → judge ──(继续辩论)──→ 回到辩论
+                                                              └──(达成共识)──→ summarize → END
+```
+
+**LangGraph 要点：**
+- 多个 Agent 并行表达观点
+- 条件边控制辩论轮次
+- 评审 Agent 综合裁决
+- 观点碰撞提升最终质量
 
 ---
 
